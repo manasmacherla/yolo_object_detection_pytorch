@@ -34,6 +34,14 @@ def parse_cfg(cfgfile):
 
     return blocks
 
-    
+def create_modules(blocks):
+    net_info = blocks[0]
+    module_list = nn.ModuleList()
+    prev_filters = 3
+    output_filters = []
+
+    for index, x in enumerate(x[1:]):
+        module = nn.Sequential()
+        
 
 
