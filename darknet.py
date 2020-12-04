@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F 
 from torch.autograd import Variable
 import numpy as np
+import cv2
 
 def parse_cfg(cfgfile):
     """
@@ -34,6 +35,17 @@ def parse_cfg(cfgfile):
     blocks.append(block)
 
     return blocks
+
+def get_test_input():
+    img = cv2.imread("dog-cycle-car.png")
+    img = cv2.resize(img, (416,416))
+    img_ = img[:,:,::-1].transpose((2,0,1))
+    img_ = img_[np.newaxis,:,:,:]/255.0
+    img_ = torch.from_numpy(img_).float()
+    img_ = Variable(img_)
+    print(img_.shape)
+    return img_
+
 
 class EmptyLayer(nn.Module):
     def __init__(self):
@@ -68,7 +80,7 @@ def create_modules(blocks):
             padding = int(x["pad"])
 
             if padding:
-                pad = kernel_size -1 // 2
+                pad = (kernel_size -1) // 2
             else:
                 pad = 0
 
@@ -85,21 +97,42 @@ def create_modules(blocks):
         
         elif (x["type"] == "upsample"):
             stride = int(x["stride"])
-            upsample = nn.Upsample(scale_factor = 2, mode = "bilinear")
+            upsample = nn.Upsample(scale_factor = 2, mode = "nearest")
             module.add_module("upsample_{}".format(index), upsample)
+
+        # elif (x["type"] == "route"):
+        #     x["layers"] = x["layers"].split(',')
+        #     x["layers"][0] = int(x["layers"][0])
+
+        #     if (len(x["layers"]) == 1):
+        #         x["layers"][0] = int(index + x["layers"][0])
+        #         filters = output_filters[x["layers"][0]]
+
+        #     elif (len(x["layers"]) > 1):
+        #         x["layers"][0] = int(index + x["layers"][0])
+        #         x["layers"][1] = int(x["layers"][0])
+        #         filters = output_filters[x["layers"][0]] + output_filters[x["layers"][1]]
 
         elif (x["type"] == "route"):
             x["layers"] = x["layers"].split(',')
-            x["layers"][0] = int(x["layers"][0])
-
-            if (len(x["layers"]) == 1):
-                x["layers"][0] = int(index + x["layers"][0])
-                filters = output_filters[x["layers"][0]]
-
-            elif (len(x["layers"]) > 1):
-                x["layers"][0] = int(index + x["layers"][0])
-                x["layers"][1] = int(x["layers"][0])
-                filters = output_filters[x["layers"][0]] + output_filters[x["layers"][1]]
+            #Start  of a route
+            start = int(x["layers"][0])
+            #end, if there exists one.
+            try:
+                end = int(x["layers"][1])
+            except:
+                end = 0
+            #Positive anotation
+            if start > 0: 
+                start = start - index
+            if end > 0:
+                end = end - index
+            route = EmptyLayer()
+            module.add_module("route_{0}".format(index), route)
+            if end < 0:
+                filters = output_filters[index + start] + output_filters[index + end]
+            else:
+                filters= output_filters[index + start]
 
             route = EmptyLayer()
             module.add_module("route_{0}".format(index), route)
@@ -113,7 +146,9 @@ def create_modules(blocks):
             mask = [int(x) for x in mask]
 
             anchors = x["anchors"].split(',')
+            anchors = [int(a) for a in anchors]
             anchors = [(anchors[i], anchors[i+1]) for i in range(0, len(anchors), 2)]
+            anchors = [anchors[i] for i in mask]
 
             detection = DetectionLayer(anchors)
             module.add_module("Detection_{}".format(index), detection)
@@ -124,8 +159,8 @@ def create_modules(blocks):
 
     return (net_info, module_list)
 
-blocks = parse_cfg("cfg/yolov3.cfg")
-print(create_modules(blocks))
+#blocks = parse_cfg("cfg/yolov3.cfg")
+#print(create_modules(blocks))
 
 class Darknet(nn.Module):
     def __init__(self, cfgfile):
@@ -184,9 +219,11 @@ class Darknet(nn.Module):
 
         return detections
 
-            
 
-
+model = Darknet("cfg/yolov3.cfg")
+inp = get_test_input()
+pred = model(inp, CUDA=False)
+print(pred)
 
 
 

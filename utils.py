@@ -15,9 +15,9 @@ def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA = True):
     bbox_attrs = 5+num_classes
     num_anchors = len(anchors)
 
-    prediction = prediction.view(batch_size, grid_size*grid_size*num_anchors, bbox_attrs)
+    prediction = prediction.view(batch_size, bbox_attrs*num_anchors, grid_size*grid_size)
     prediction = prediction.transpose(1,2).contiguous() #what does .contiguous mean
-    prediction = prediction.view(batch_size, bbox_attrs, grid_size*grid_size*num_anchors)
+    prediction = prediction.view(batch_size, grid_size*grid_size*num_anchors, bbox_attrs)
 
     anchors = [(a[0]/stride, a[1]/stride) for a in anchors]
 
