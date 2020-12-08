@@ -239,7 +239,7 @@ class Darknet(nn.Module):
             if module_type == "convolutional":
                 model = self.module_list[i] #first block is 
                 try:
-                    batch_normalize = int(self.blocks[i+1][batch_normalize])
+                    batch_normalize = int(self.blocks[i+1]["batch_normalize"])
                 except:
                     batch_normalize = 0
 
@@ -290,15 +290,15 @@ class Darknet(nn.Module):
                     #Finally copy the data
                     conv.bias.data.copy_(conv_biases)
 
-                    #Let us load the weights for the Convolutional layers
-                    num_weights = conv.weight.numel()
+                #Let us load the weights for the Convolutional layers
+                num_weights = conv.weight.numel()
 
-                    #Do the same as above for weights
-                    conv_weights = torch.from_numpy(weights[ptr:ptr+num_weights])
-                    ptr = ptr + num_weights
+                #Do the same as above for weights
+                conv_weights = torch.from_numpy(weights[ptr:ptr+num_weights])
+                ptr = ptr + num_weights
 
-                    conv_weights = conv_weights.view_as(conv.weight.data)
-                    conv.weight.data.copy_(conv_weights)
+                conv_weights = conv_weights.view_as(conv.weight.data)
+                conv.weight.data.copy_(conv_weights)
 
 model = Darknet("cfg/yolov3.cfg")
 model.load_weights("yolov3.weights")
