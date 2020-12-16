@@ -52,3 +52,30 @@ def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA = True):
     prediction[:,:,:4] *= stride #upsampling the bbox size back to the original input dim
 
     return prediction
+
+def write_results(prediction, confidence, num_classes, nms_conf):
+
+    # inequality opn - batchsize x10647, float opn converts into 0 or 1 bx10647, unsqueeze opn adds column(2) dim bx10647x1
+    conf_mask = (prediction[:,:,4] > confidence).float().unsqueeze(2)
+    prediction = prediction*conf_mask
+
+    box_corner = prediction.new(prediction.shape)
+    box_corner[:,:,0] = (prediction[:,:,0] - prediction[:,:,2]/2)
+    box_corner[:,:,1] = (prediction[:,:,1] - prediction[:,:,3]/2)
+    box_corner[:,:,2] = (prediction[:,:,0] + prediction[:,:,2]/2) 
+    box_corner[:,:,3] = (prediction[:,:,1] + prediction[:,:,3]/2)
+    prediction[:,:,:4] = box_corner[:,:,:4]
+
+    batch_size = prediction.size(0)
+
+    write = False
+
+    for ind in range(batch_size):
+        image_pred = prediction[ind]
+        
+        #gives a tuple of indices and values in the axis specified https://pytorch.org/docs/stable/generated/torch.max.html
+        max_conf, max_conf_score = torch.max(image_pred[:,5:5+ num_classes], 1)
+        max_conf = max_conf.float().unsqueeze(1) #adding a dimension to concatenate later
+        max_conf_score = max_conf_score.float().unsqueeze(1) 
+        seq = (image_pred[:,:5], max_conf, max_conf_score) #(10647, 5), (10647, 1), (10647, 1) 
+        image_pred = torch.cat(seq, 1) 
