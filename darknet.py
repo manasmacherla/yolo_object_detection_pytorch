@@ -23,6 +23,8 @@ def parse_cfg(cfgfile):
     block = {}
     blocks = []
 
+    #blocks will have the [net], [yolo] block in it as well, all the blocks are included 
+
     for line in lines:
         if line[0] == '[':
             if len(block) > 0:
@@ -157,7 +159,7 @@ def create_modules(blocks):
         prev_filters = filters
         output_filters.append(filters)
 
-    return (net_info, module_list)
+    return (net_info, module_list) #module list will not have the [net] module in it, # of modules = blocks - 1
 
 #blocks = parse_cfg("cfg/yolov3.cfg")
 #print(create_modules(blocks))
@@ -169,7 +171,7 @@ class Darknet(nn.Module):
         self.net_info, self.module_list = create_modules(self.blocks)
 
     def forward(self, x, CUDA):
-        modules = self.blocks[1:]
+        modules = self.blocks[1:] #started from the first block not the 0th block since it is the net module
         outputs = {}
 
         write = 0
