@@ -174,8 +174,8 @@ class Darknet(nn.Module):
         modules = self.blocks[1:] #started from the first block not the 0th block since it is the net module
         outputs = {}
 
-        write = 0
-
+        write = 0 #this flag is used to check if the detection collector has been initialized or not
+                  #if it is then detections are concatenated to the existing collector
         for i, module in enumerate(modules):
             module_type = (module["type"])
             if module_type == "convolutional" or module_type == "upsample":
@@ -202,7 +202,7 @@ class Darknet(nn.Module):
 
             elif module_type == "shortcut":
                 from_ = int(module["from"])
-                x = outputs[i-1] + outputs[i + from_]
+                x = outputs[i-1] + outputs[i + from_] #adding fmaps from the specified layer to the previous layer, skip connection
 
             elif module_type == "yolo":
                 anchors = self.module_list[i][0].anchors
@@ -210,31 +210,37 @@ class Darknet(nn.Module):
                 num_classes = int(module["classes"])
 
                 x = x.data
-                x = predict_transform(x, inp_dim, anchors, num_classes, CUDA)
+                x = predict_transform(x, inp_dim, anchors, num_classes, CUDA) 
                 if not write:
-                    detections = x
+                    detections = x #initializing the collector
                     write = 1
                 else:
-                    detections = torch.cat((detections,x), 1)
+                    detections = torch.cat((detections,x), 1) #concatenating
 
-            outputs[i] = x
+            outputs[i] = x #for route and shortcut layer
 
         return detections
 
 
 # model = Darknet("cfg/yolov3.cfg")
 # inp = get_test_input()
-# pred = model(inp, CUDA=False)
+# pred = model(inp, CUDA=False) #https://discuss.pytorch.org/t/forward-method-in-pytorch/43797, calling model directly is recommeded
 # print(pred.shape)
 
     def load_weights(self, weightfile):
-        fp = open(weightfile, "rb")
+        fp = open(weightfile, "rb") #reading the file in binary format
+
+        #The first 5 values are header information 
+        # 1. Major version number
+        # 2. Minor Version Number
+        # 3. Subversion number 
+        # 4,5. Images seen by the network (during training)
         header = np.fromfile(fp, dtype = np.int32, count = 5)
         self.header = torch.from_numpy(header)
         self.seen = self.header[3]
-        weights = np.fromfile(fp, dtype= np.float32)
+        weights = np.fromfile(fp, dtype= np.float32) # reading binary data from file and casting it into an array format
 
-        ptr=0
+        ptr=0 #pointer to the last weight used 
         for i in range(len(self.module_list)):
             module_type = self.blocks[i+1]["type"]
 
@@ -250,10 +256,9 @@ class Darknet(nn.Module):
                 if (batch_normalize):
                     bn = model[1]
 
-                    #Get the number of weights of Batch Norm Layer
-                    num_bn_biases = bn.bias.numel()
+                    num_bn_biases = bn.bias.numel() #Get the number of weights of Batch Norm Layer
 
-                    #Load the weights
+                    #Load the weights of bn biases, weights, running mean, running var
                     bn_biases = torch.from_numpy(weights[ptr:ptr + num_bn_biases])
                     ptr += num_bn_biases
 
