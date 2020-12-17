@@ -7,6 +7,15 @@ from torch.autograd import Variable
 import numpy as np
 import cv2 
 
+def unique(tensor):
+    tensor_np = tensor.cpu().numpy()
+    unique_np = np.unique(tensor_np)
+    unique_tensor = torch.from_numpy(unique_np)
+    
+    tensor_res = tensor.new(unique_tensor.shape)
+    tensor_res.copy_(unique_tensor)
+    return tensor_res
+
 def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA = True):
 
     batch_size = prediction.size(0)
@@ -78,4 +87,18 @@ def write_results(prediction, confidence, num_classes, nms_conf):
         max_conf = max_conf.float().unsqueeze(1) #adding a dimension to concatenate later
         max_conf_score = max_conf_score.float().unsqueeze(1) 
         seq = (image_pred[:,:5], max_conf, max_conf_score) #(10647, 5), (10647, 1), (10647, 1) 
-        image_pred = torch.cat(seq, 1) 
+        image_pred = torch.cat(seq, 1) #concatenating in the row axis
+
+        #squeeze opn reduces the rank of the tensor and removes all the axes that have a length of one
+        non_zero_ind = (torch.nonzero(image_pred[:,4]))
+        #try catch block is there to continue the for loop if there are no detections in the image prediction
+        try: 
+            image_pred_ = image_pred[non_zero_ind.squeeze(),:].view(-1,7)
+        except:
+            continue
+
+        if image_pred_.shape[0] == 0:
+            continue
+
+        img_classes = unique(image_pred_[:,-1]) # -1 index holds the class index
+
