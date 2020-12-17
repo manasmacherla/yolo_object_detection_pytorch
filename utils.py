@@ -9,7 +9,7 @@ import cv2
 
 def unique(tensor):
     tensor_np = tensor.cpu().numpy()
-    unique_np = np.unique(tensor_np)
+    unique_np = np.unique(tensor_np) #returns the unique values in the array and not the indices
     unique_tensor = torch.from_numpy(unique_np)
     
     tensor_res = tensor.new(unique_tensor.shape)
@@ -102,3 +102,15 @@ def write_results(prediction, confidence, num_classes, nms_conf):
 
         img_classes = unique(image_pred_[:,-1]) # -1 index holds the class index
 
+        for cls in img_classes:
+            #performing NMS
+            #slicing the last column vector, getting bool value and multiplying with image_pred_
+            cls_mask = image_pred_*(image_pred_[:,-1] == cls).float().unsqueeze(1) 
+            class_mask_ind = torch.nonzero(cls_mask[:,-2]).squeeze() #this is image_pred, found the indices of the detections for this class
+            image_pred_class = image_pred_[class_mask_ind].view(-1,7) #getting all the detections with that index from the main detections tensor
+
+            #sorting the detections such that the entry with the maximum objectness
+            #confidence is at the top
+            conf_sort_index = torch.sort(image_pred_class[:,4], descending = True )[1] #outputs two tensors (values and indices) ind = slicing 2nd array
+            image_pred_class = image_pred_class[conf_sort_index] # rearraging the prediction tensor in a descending manner 
+            idx = image_pred_class.size(0)   #Number of detections
