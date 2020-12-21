@@ -104,6 +104,7 @@ def write_results(prediction, confidence, num_classes, nms_conf):
 
     write = False
 
+    #going through a for loop for each image
     for ind in range(batch_size):
         image_pred = prediction[ind]
         
@@ -118,7 +119,7 @@ def write_results(prediction, confidence, num_classes, nms_conf):
         non_zero_ind = (torch.nonzero(image_pred[:,4]))
         #try catch block is there to continue the for loop if there are no detections in the image prediction
         try: 
-            image_pred_ = image_pred[non_zero_ind.squeeze(),:].view(-1,7)
+            image_pred_ = image_pred[non_zero_ind.squeeze(),:].view(-1,7) #getting all the detections with nonzero conf scores 
         except:
             continue
 
@@ -137,7 +138,7 @@ def write_results(prediction, confidence, num_classes, nms_conf):
             #sorting the detections such that the entry with the maximum objectness
             #confidence is at the top
             conf_sort_index = torch.sort(image_pred_class[:,4], descending = True )[1] #outputs two tensors (values and indices) ind = slicing 2nd array
-            image_pred_class = image_pred_class[conf_sort_index] # rearraging the prediction tensor in a descending manner 
+            image_pred_class = image_pred_class[conf_sort_index] # rearraging the prediction class tensor in a descending manner 
             idx = image_pred_class.size(0)   #Number of detections
 
             for i in range(idx):
@@ -153,6 +154,22 @@ def write_results(prediction, confidence, num_classes, nms_conf):
                 iou_mask = (ious < nms_conf).float().unsqueeze(1)
                 image_pred_class[i+1:] *= iou_mask       
 
-                #Remove the non-zero entries
+                #Keep the non-zero entries, remove zeroed out entries 
                 non_zero_ind = torch.nonzero(image_pred_class[:,4]).squeeze()
                 image_pred_class = image_pred_class[non_zero_ind].view(-1,7)
+
+                batch_ind = image_pred_class.new(image_pred_class.size(0), 1).fill_(ind)      
+                #Repeat the batch_id for as many detections of the class cls in the image
+                seq = batch_ind, image_pred_class
+
+                if not write:
+                    output = torch.cat(seq,1)
+                    write = True
+                else:
+                    out = torch.cat(seq,1)
+                    output = torch.cat((output,out))
+
+                try:
+                    return output
+                except:
+                    return 0
