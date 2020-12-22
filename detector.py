@@ -14,6 +14,11 @@ import pickle as pkl
 import pandas as pd
 import random
 
+def load_classes(namesfile):
+    fp = open(namesfile, "r")
+    names = fp.read().split("\n")[:-1]
+    return names
+
 def arg_parse():
     """
     Parse arguements to the detect module
@@ -40,3 +45,42 @@ def arg_parse():
                         default = "416", type = str)
     
     return parser.parse_args()
+
+num_classes = 80    #For COCO
+classes = load_classes("data/coco.names")
+
+#Set up the neural network
+print("Loading network.....")
+model = Darknet(args.cfgfile)
+model.load_weights(args.weightsfile)
+print("Network successfully loaded")
+
+model.net_info["height"] = args.reso
+inp_dim = int(model.net_info["height"])
+assert inp_dim % 32 == 0 
+assert inp_dim > 32
+
+#If there's a GPU availible, put the model on GPU
+if CUDA:
+    model.cuda()
+
+#Set the model in evaluation mode
+model.eval()
+
+read_dir = time.time()
+#Detection phase
+try:
+    imlist = [osp.join(osp.realpath('.'), images, img) for img in os.listdir(images)]
+except NotADirectoryError:
+    imlist = []
+    imlist.append(osp.join(osp.realpath('.'), images))
+except FileNotFoundError:
+    print ("No file or directory with the name {}".format(images))
+    exit()
+
+if not os.path.exists(args.det):
+    os.makedirs(args.det)
+
+load_batch = time.time()
+loaded_ims = [cv2.imread(img) for img in imlist]
+
