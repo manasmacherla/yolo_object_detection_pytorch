@@ -79,7 +79,7 @@ except FileNotFoundError:
     exit()
 
 if not os.path.exists(args.det):
-    os.makedirs(args.det)
+    os.makedirs(args.det) #creating the folder for detections
 
 load_batch = time.time()
 loaded_ims = [cv2.imread(img) for img in imlist] #list of numpy arrays 
@@ -102,5 +102,45 @@ if batch_size != 1:
    im_batches = [torch.cat((im_batches[i*batch_size : min((i +  1)*batch_size,
                        len(im_batches))]))  for i in range(num_batches)]
 
+write = 0
+start_det_loop = time.time()
 
+for i, batch in enumerate(im_batches):
+    #load the image 
+    start = time.time()
+    if CUDA:
+        batch = batch.cuda()
 
+    #volatile = True is set to the input network if you are only running inference and not backprop to conserve memory
+    prediction = model(Variable(batch, volatile = True), CUDA) #calling model for running the forward method 
+
+    prediction = write_results(prediction, confidence, num_classes, nms_conf = nms_thesh) #write results gives Dx8 output for each batch
+    
+    end = time.time() #to calculate the detection loop time for one batch
+    
+    if type(prediction) == int:
+        for im_num, image in enumerate(imlist[i*batch_size: min((i +  1)*batch_size, len(imlist))]):
+            im_id = i*batch_size + im_num
+            print("{0:20s} predicted in {1:6.3f} seconds".format(image.split("/")[-1], (end - start)/batch_size)) #string format functions
+            #{0:20s} give 20 spaces, {1:6.3f} - round to 3 digit float number??
+            print("{0:20s} {1:s}".format("Objects Detected:", ""))
+            print("----------------------------------------------------------")
+        continue
+        
+        prediction[:,0] += i*batch_size #transform the atribute from index in batch to index in imlist, pretty straightforward
+
+        if not write:                      #If we have't initialised output
+            output = prediction  
+            write = 1
+        else:
+            output = torch.cat((output,prediction))
+
+        for im_num, image in enumerate(imlist[i*batch_size: min((i +  1)*batch_size, len(imlist))]):
+            im_id = i*batch_size + im_num
+            objs = [classes[int(x[-1])] for x in output if int(x[0]) == im_id]
+            print("{0:20s} predicted in {1:6.3f} seconds".format(image.split("/")[-1], (end - start)/batch_size))
+            print("{0:20s} {1:s}".format("Objects Detected:", " ".join(objs)))
+            print("----------------------------------------------------------")
+
+        if CUDA:
+            torch.cuda.synchronize() 
