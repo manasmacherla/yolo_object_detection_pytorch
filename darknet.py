@@ -8,6 +8,15 @@ from torch.autograd import Variable
 import numpy as np
 import cv2
 
+def get_test_input():
+    img = cv2.imread("dog-cycle-car.png")
+    img = cv2.resize(img, (416,416))
+    img_ = img[:,:,::-1].transpose((2,0,1))
+    img_ = img_[np.newaxis,:,:,:]/255.0
+    img_ = torch.from_numpy(img_).float()
+    img_ = Variable(img_)
+    return img_
+
 def parse_cfg(cfgfile):
     """
     Takes a configuration file
@@ -38,16 +47,6 @@ def parse_cfg(cfgfile):
 
     return blocks
 
-def get_test_input():
-    img = cv2.imread("dog-cycle-car.png")
-    img = cv2.resize(img, (416,416))
-    img_ = img[:,:,::-1].transpose((2,0,1))
-    img_ = img_[np.newaxis,:,:,:]/255.0
-    img_ = torch.from_numpy(img_).float()
-    img_ = Variable(img_)
-    print(img_.shape)
-    return img_
-
 
 class EmptyLayer(nn.Module):
     def __init__(self):
@@ -68,9 +67,9 @@ def create_modules(blocks):
         module = nn.Sequential()
         
         if (x["type"] == "convolutional"):
-            activation = ["activation"]
+            activation = x["activation"]
             try:
-                batch_normalize = x["batch_normalize"]
+                batch_normalize = int(x["batch_normalize"])
                 bias = False
             except:
                 batch_normalize = 0
@@ -102,19 +101,6 @@ def create_modules(blocks):
             upsample = nn.Upsample(scale_factor = 2, mode = "nearest")
             module.add_module("upsample_{}".format(index), upsample)
 
-        # elif (x["type"] == "route"):
-        #     x["layers"] = x["layers"].split(',')
-        #     x["layers"][0] = int(x["layers"][0])
-
-        #     if (len(x["layers"]) == 1):
-        #         x["layers"][0] = int(index + x["layers"][0])
-        #         filters = output_filters[x["layers"][0]]
-
-        #     elif (len(x["layers"]) > 1):
-        #         x["layers"][0] = int(index + x["layers"][0])
-        #         x["layers"][1] = int(x["layers"][0])
-        #         filters = output_filters[x["layers"][0]] + output_filters[x["layers"][1]]
-
         elif (x["type"] == "route"):
             x["layers"] = x["layers"].split(',')
             #Start  of a route
@@ -135,9 +121,6 @@ def create_modules(blocks):
                 filters = output_filters[index + start] + output_filters[index + end]
             else:
                 filters= output_filters[index + start]
-
-            route = EmptyLayer()
-            module.add_module("route_{0}".format(index), route)
 
         elif x["type"] == "shortcut":
             shortcut = EmptyLayer()
@@ -161,8 +144,8 @@ def create_modules(blocks):
 
     return (net_info, module_list) #module list will not have the [net] module in it, # of modules = blocks - 1
 
-#blocks = parse_cfg("cfg/yolov3.cfg")
-#print(create_modules(blocks))
+# blocks = parse_cfg("cfg/yolov3.cfg")
+# print(create_modules(blocks))
 
 class Darknet(nn.Module):
     def __init__(self, cfgfile):
@@ -192,7 +175,7 @@ class Darknet(nn.Module):
                     x = outputs[i + (layers[0])]
 
                 else:
-                    if layers[1] > 0:
+                    if (layers[1]) > 0:
                         layers[1] = layers[1] - i
                     
                     map1 = outputs[i + layers[0]]
@@ -222,11 +205,9 @@ class Darknet(nn.Module):
         return detections
 
 
-# model = Darknet("cfg/yolov3.cfg")
-# inp = get_test_input()
-# pred = model(inp, CUDA=False) #https://discuss.pytorch.org/t/forward-method-in-pytorch/43797, calling model directly is recommeded
-# print(pred.shape)
 
+
+    
     def load_weights(self, weightfile):
         fp = open(weightfile, "rb") #reading the file in binary format
 
@@ -307,11 +288,8 @@ class Darknet(nn.Module):
                 conv_weights = conv_weights.view_as(conv.weight.data)
                 conv.weight.data.copy_(conv_weights)
 
-model = Darknet("cfg/yolov3.cfg")
-model.load_weights("yolov3.weights")
 
-
-
-
-
-
+# model = Darknet("cfg/yolov3.cfg")
+# inp = get_test_input()
+# pred = model(inp, CUDA=False) #https://discuss.pytorch.org/t/forward-method-in-pytorch/43797, calling model directly is recommeded
+# print(pred.shape)

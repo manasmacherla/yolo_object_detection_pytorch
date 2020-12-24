@@ -45,13 +45,13 @@ def letterbox_image(img, inp_dim):
     '''resize image with unchanged aspect ratio using padding'''
     img_w, img_h = img.shape[1], img.shape[0]
     w, h = inp_dim
-    new_w = int(img_w * min(w/img_w, h/img_h))
-    new_h = int(img_h * min(w/img_w, h/img_h))
-    resized_image = cv2.resize(img, (new_w,new_h), interpolation = cv2.INTER_CUBIC)
+    new_w = int(img_w * min(w/img_w, h/img_h)) #maintaining the aspect ratio but scaling the image into new w
+    new_h = int(img_h * min(w/img_w, h/img_h)) #maintaining the aspect ratio but scaling the image into new h 
+    resized_image = cv2.resize(img, (new_w,new_h), interpolation = cv2.INTER_CUBIC) #resizing using cubic interpolation method
     
-    canvas = np.full((inp_dim[1], inp_dim[0], 3), 128)
+    canvas = np.full((inp_dim[1], inp_dim[0], 3), 128) #creating a blank img with 128,128,128
 
-    canvas[(h-new_h)//2:(h-new_h)//2 + new_h,(w-new_w)//2:(w-new_w)//2 + new_w,  :] = resized_image
+    canvas[(h-new_h)//2:(h-new_h)//2 + new_h,(w-new_w)//2:(w-new_w)//2 + new_w,  :] = resized_image #placing the img in the blank img
     
     return canvas
 
@@ -60,9 +60,9 @@ def prep_image(img, inp_dim):
     Prepare image for inputting to the neural network. 
     Returns an image
     """
-    img = cv2.resize(img, (inp_dim, inp_dim))
-    img = img[:,:,::-1].transpose((2,0,1)).copy()
-    img = torch.from_numpy(img).float().div(255.0).unsqueeze(0)
+    img = cv2.resize(img, (inp_dim, inp_dim)) 
+    img = img[:,:,::-1].transpose((2,0,1)).copy() #changing from RGB to BGR
+    img = torch.from_numpy(img).float().div(255.0).unsqueeze(0) #normalizing the img and adding a new dimension for batch
     return img
 
 def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA = True):
@@ -182,18 +182,23 @@ def write_results(prediction, confidence, num_classes, nms_conf):
                 non_zero_ind = torch.nonzero(image_pred_class[:,4]).squeeze()
                 image_pred_class = image_pred_class[non_zero_ind].view(-1,7)
 
-                batch_ind = image_pred_class.new(image_pred_class.size(0), 1).fill_(ind)      
-                #Repeat the batch_id for as many detections of the class cls in the image
-                seq = batch_ind, image_pred_class
+            batch_ind = image_pred_class.new(image_pred_class.size(0), 1).fill_(ind)      
+            #Repeat the batch_id for as many detections of the class cls in the image
+            seq = batch_ind, image_pred_class
 
-                if not write:
-                    output = torch.cat(seq,1)
-                    write = True
-                else:
-                    out = torch.cat(seq,1)
-                    output = torch.cat((output,out))
+            if not write:
+                output = torch.cat(seq,1)
+                write = True
+            else:
+                out = torch.cat(seq,1)
+                output = torch.cat((output,out))
 
-                try:
-                    return output
-                except:
-                    return 0
+    try:
+        return output
+    except:
+        return 0
+
+def load_classes(namesfile):
+    fp = open(namesfile, "r")
+    names = fp.read().split("\n")[:-1]
+    return names
