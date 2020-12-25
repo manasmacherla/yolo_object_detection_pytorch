@@ -48,7 +48,7 @@ confidence = float(args.confidence)
 nms_thesh = float(args.nms_thresh)
 start = 0
 CUDA = torch.cuda.is_available()
-
+#CUDA = False
 num_classes = 80    #For COCO
 classes = load_classes("data/coco.names")
 
@@ -122,7 +122,7 @@ for i, batch in enumerate(im_batches):
         prediction = model(Variable(batch), CUDA) #calling model for running the forward method 
 
     prediction = write_results(prediction, confidence, num_classes, nms_conf = nms_thesh) #write results gives Dx8 output for each batch
-    print(prediction)
+    #print(prediction)
     end = time.time() #to calculate the detection loop time for one batch
     
     if type(prediction) == int:
@@ -189,7 +189,7 @@ def write(x, results):
     t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1 , 1)[0]
     c2 = c1[0] + t_size[0] + 3, c1[1] + t_size[1] + 4
     cv2.rectangle(img, c1, c2,color, -1)
-    cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1, [225,255,255], 1);
+    cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1, [225,255,255], 1)
     return img
 
 list(map(lambda x: write(x, loaded_ims), output))

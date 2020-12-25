@@ -47,7 +47,6 @@ def parse_cfg(cfgfile):
 
     return blocks
 
-
 class EmptyLayer(nn.Module):
     def __init__(self):
         super(EmptyLayer, self).__init__()   
@@ -203,10 +202,6 @@ class Darknet(nn.Module):
             outputs[i] = x #for route and shortcut layer
 
         return detections
-
-
-
-
     
     def load_weights(self, weightfile):
         fp = open(weightfile, "rb") #reading the file in binary format
