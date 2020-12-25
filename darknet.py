@@ -281,8 +281,11 @@ class Darknet(nn.Module):
                 ptr = ptr + num_weights
 
                 conv_weights = conv_weights.view_as(conv.weight.data)
-                conv.weight.data.copy_(conv_weights)
+                conv.weight.data.copy_(conv_weights) 
+                
+                
 
+# made a change in working copy, lets see if it works
 
 # model = Darknet("cfg/yolov3.cfg")
 # inp = get_test_input()
