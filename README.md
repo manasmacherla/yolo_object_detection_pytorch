@@ -10,4 +10,4 @@ This repository contains code for a object detector based on YOLOv3: An Incremen
 
 I have run the algorithm on a traffic video. Here is how it worked.
 
-
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](https://www.youtube.com/watch?v=Q5BRowrCAbg "Object detection using a YOLO-V3 PyTorch implementation")
