@@ -1,5 +1,5 @@
 from __future__ import division
-from utils import *
+from util import *
 
 import torch 
 import torch.nn as nn

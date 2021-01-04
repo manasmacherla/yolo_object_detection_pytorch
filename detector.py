@@ -5,11 +5,11 @@ import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
 import cv2 
-from utils import *
+from util import *
 import argparse
 import os 
 import os.path as osp
-from darknet import Darknet
+from darknet1 import Darknet
 import pickle as pkl
 import pandas as pd
 import random
@@ -86,6 +86,7 @@ if not os.path.exists(args.det):
 
 load_batch = time.time()
 loaded_ims = [cv2.imread(x) for x in imlist] #list of numpy arrays 
+#loaded_ims = [cv2.resize(x, (416, 416), interpolation = cv2.INTER_AREA) for x in loaded_ims] #reshaping to (416,416) for best detections
 
 #PyTorch Variables for images
 im_batches = list(map(prep_image, loaded_ims, [inp_dim for x in range(len(imlist))]))
@@ -194,8 +195,8 @@ def write(x, results):
 
 list(map(lambda x: write(x, loaded_ims), output))
 
-det_names = pd.Series(imlist).apply(lambda x: "{}/det_{}".format(args.det,x.split("/")[-1]))
-
+det_names = pd.Series(imlist).apply(lambda x: "{}/det_{}".format(args.det,x.split("\\")[-1]))
+#print(det_names)
 list(map(cv2.imwrite, det_names, loaded_ims))
 end = time.time()
 
