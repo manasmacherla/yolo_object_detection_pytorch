@@ -14,16 +14,11 @@ To run the algorithm we will need the official weightsfile for coco which can be
 wget https://pjreddie.com/media/files/yolov3.weights  
 ```
 
-### Detection on videos
-
-I have run the algorithm on a traffic video. Here is how it worked. Please go to the link: https://www.youtube.com/watch?v=Q5BRowrCAbg
-```
-python video.py --video video.avi
-```
-
 ### Detection on images
 
 For images here is how the detector works:
+
+
 ![Detection](https://github.com/manasmacherla/yolo_object_detection_pytorch/blob/master/det1/det_dog-cycle-car.png) 
 
 To run the detector on an image or a directory containing images:
@@ -32,7 +27,19 @@ To run the detector on an image or a directory containing images:
 python detect.py --images imgs --det det1 
 ```
 
-References:
+### Detection on videos
+
+To run the detector on a video:
+
+```
+python video.py --video video.avi
+```
+
+I have run the algorithm on a traffic video. Here is how it worked. Please go to the link: https://www.youtube.com/watch?v=Q5BRowrCAbg
+
+
+
+### References:
 
 For more information about the YOLO-V3 algorithm, please go through this paper: https://pjreddie.com/media/files/papers/YOLOv3.pdf
 
